@@ -10,6 +10,8 @@ import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { ESAJClient, DatajudClient, judicialSyncManager, ComplianceUtils } from "./judicial-integration";
 import { OlhoDaLei, MatchDeJuizes, HealthScoreCalculator, RadarDePrazos, CalculadoraHonorarios, ModoPostAudiencia } from "./advanced-intelligence";
+import { createCheckoutSession, createPortalSession, getSubscriptionDetails, cancelSubscription } from "./stripe-routes";
+import { SUBSCRIPTION_PLANS, formatPrice, getPlanById } from "./stripe-products";
 
 // ==================== VALIDATION SCHEMAS ====================
 const caseSchema = z.object({
@@ -988,6 +990,83 @@ ${transcription.transcriptionText}`;
         );
         return { ...relatorio, audienciaId: input.audienciaId };
       }),
+  }),
+
+  // ==================== STRIPE / SUBSCRIPTIONS ====================
+  stripe: router({
+    // Get available plans
+    getPlans: publicProcedure.query(() => {
+      return SUBSCRIPTION_PLANS.map(plan => ({
+        ...plan,
+        priceMonthlyFormatted: formatPrice(plan.priceMonthly),
+        priceYearlyFormatted: formatPrice(plan.priceYearly),
+      }));
+    }),
+
+    // Get current user's subscription status
+    getSubscriptionStatus: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      const plan = getPlanById(user.subscriptionPlan || 'free');
+      
+      let stripeDetails = null;
+      if (user.stripeSubscriptionId) {
+        stripeDetails = await getSubscriptionDetails(user.stripeSubscriptionId);
+      }
+
+      return {
+        currentPlan: user.subscriptionPlan || 'free',
+        planDetails: plan,
+        expiresAt: user.subscriptionExpiresAt,
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        stripeDetails,
+      };
+    }),
+
+    // Create checkout session for subscription
+    createCheckout: protectedProcedure
+      .input(z.object({
+        planId: z.enum(['professional', 'enterprise']),
+        billingPeriod: z.enum(['monthly', 'yearly']).default('monthly'),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const origin = ctx.req.headers.origin || 'http://localhost:3000';
+        
+        const result = await createCheckoutSession(
+          ctx.user.id,
+          ctx.user.email || '',
+          ctx.user.name || 'Usuário',
+          input.planId,
+          input.billingPeriod,
+          origin
+        );
+
+        return result;
+      }),
+
+    // Create customer portal session for managing subscription
+    createPortal: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user.stripeCustomerId) {
+        throw new Error('Você não possui uma assinatura ativa');
+      }
+
+      const origin = ctx.req.headers.origin || 'http://localhost:3000';
+      return createPortalSession(ctx.user.stripeCustomerId, origin);
+    }),
+
+    // Cancel subscription (at period end)
+    cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user.stripeSubscriptionId) {
+        throw new Error('Você não possui uma assinatura ativa');
+      }
+
+      const success = await cancelSubscription(ctx.user.stripeSubscriptionId);
+      if (!success) {
+        throw new Error('Falha ao cancelar assinatura');
+      }
+
+      return { success: true, message: 'Assinatura será cancelada ao final do período atual' };
+    }),
   }),
 });
 

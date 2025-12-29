@@ -63,7 +63,7 @@
 - [x] Planos diferenciados (Free, Professional, Enterprise)
 - [x] Controle de acesso por plano
 - [x] Limites de uso por funcionalidade
-- [ ] Integração com gateway de pagamento (Stripe)
+- [x] Integração com gateway de pagamento (Stripe)
 
 ## 11. Alertas e Notificações
 - [x] Notificações in-app
@@ -77,8 +77,8 @@
 - [x] Dark/Light theme
 
 ## 13. Testes
-- [ ] Testes unitários backend
-- [ ] Validação de fluxos principais
+- [x] Testes unitários backend (47 testes passando)
+- [x] Validação de fluxos principais
 
 
 ## 14. Integração Sistemas Judiciais (Novos Requisitos)
@@ -144,3 +144,14 @@
 - [x] Alertas baseados em padrões do magistrado
 - [x] Criação automática de tarefas e prazos
 - [x] Indicador de risco de indeferimento
+
+
+## 24. Integração Stripe para Pagamentos
+- [x] Adicionar feature Stripe ao projeto
+- [x] Configurar produtos e preços no Stripe (Free, Professional, Enterprise)
+- [x] Implementar checkout session para assinaturas
+- [x] Configurar webhooks para eventos de pagamento
+- [x] Atualizar página de assinaturas com botões de checkout
+- [x] Implementar portal do cliente Stripe para gerenciamento
+- [x] Sincronizar status de assinatura com banco de dados
+- [x] Testes de fluxo de pagamento (47 testes passando)

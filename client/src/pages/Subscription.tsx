@@ -3,75 +3,114 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { 
   Crown, Check, Zap, Building2, Rocket, 
-  Brain, Clock, FileText, Mic, Loader2
+  Brain, Clock, FileText, Mic, Loader2,
+  CreditCard, ExternalLink, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-
-const planFeatures: Record<string, { icon: any; features: string[] }> = {
-  free: {
-    icon: Zap,
-    features: [
-      "5 análises preditivas/mês",
-      "3 simulações de audiência/mês",
-      "Controle básico de prazos",
-      "1 caso ativo",
-      "Suporte por email"
-    ]
-  },
-  professional: {
-    icon: Building2,
-    features: [
-      "50 análises preditivas/mês",
-      "30 simulações de audiência/mês",
-      "Controle avançado de prazos",
-      "20 casos ativos",
-      "Transcrição de audiências",
-      "Geração de minutas",
-      "Alertas por email e app",
-      "Suporte prioritário"
-    ]
-  },
-  enterprise: {
-    icon: Rocket,
-    features: [
-      "Análises ilimitadas",
-      "Simulações ilimitadas",
-      "Casos ilimitados",
-      "Transcrição ilimitada",
-      "API de integração",
-      "Relatórios personalizados",
-      "Treinamento dedicado",
-      "Suporte 24/7",
-      "SLA garantido"
-    ]
-  }
-};
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 
 function SubscriptionContent() {
-  const { data: plans, isLoading: loadingPlans } = trpc.subscription.plans.useQuery();
-  const { data: currentSubscription, isLoading: loadingCurrent } = trpc.subscription.current.useQuery();
-  // Usage stats would come from a usage tracking endpoint
-  const usage = {
-    analyses: 0,
-    analysesLimit: 5,
-    simulations: 0,
-    simulationsLimit: 3,
-    transcriptions: 0,
-    transcriptionsLimit: 0,
-    minutes: 0,
-    minutesLimit: 0
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
+
+  // Fetch plans from Stripe
+  const { data: plans, isLoading: loadingPlans } = trpc.stripe.getPlans.useQuery();
+  
+  // Fetch current subscription status
+  const { data: subscriptionStatus, isLoading: loadingStatus, refetch: refetchStatus } = trpc.stripe.getSubscriptionStatus.useQuery();
+
+  // Mutations
+  const createCheckout = trpc.stripe.createCheckout.useMutation({
+    onSuccess: (data) => {
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao criar sessão de pagamento');
+      setProcessingPlan(null);
+    }
+  });
+
+  const createPortal = trpc.stripe.createPortal.useMutation({
+    onSuccess: (data) => {
+      // Redirect to Stripe Customer Portal
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao acessar portal de assinatura');
+    }
+  });
+
+  const cancelSubscription = trpc.stripe.cancelSubscription.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetchStatus();
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao cancelar assinatura');
+    }
+  });
+
+  // Check for success/cancel URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subscription = urlParams.get('subscription');
+    
+    if (subscription === 'success') {
+      toast.success('Assinatura realizada com sucesso! Bem-vindo ao LexAssist AI Pro!');
+      refetchStatus();
+      // Clean URL
+      window.history.replaceState({}, '', '/assinatura');
+    } else if (subscription === 'cancelled') {
+      toast.info('Processo de assinatura cancelado');
+      window.history.replaceState({}, '', '/assinatura');
+    }
+  }, []);
+
+  const isLoading = loadingPlans || loadingStatus;
+  const currentPlan = subscriptionStatus?.currentPlan || 'free';
+  const isSubscribed = currentPlan !== 'free';
+
+  const handleSubscribe = (planId: string) => {
+    if (planId === 'free') {
+      toast.info('Você já está no plano gratuito');
+      return;
+    }
+    
+    setProcessingPlan(planId);
+    createCheckout.mutate({
+      planId: planId as 'professional' | 'enterprise',
+      billingPeriod
+    });
   };
 
-  const isLoading = loadingPlans || loadingCurrent;
+  const handleManageSubscription = () => {
+    createPortal.mutate();
+  };
 
-  const currentPlan = currentSubscription?.plan || "free";
-  const isSubscribed = currentPlan !== "free";
+  const handleCancelSubscription = () => {
+    if (confirm('Tem certeza que deseja cancelar sua assinatura? O acesso continuará até o final do período pago.')) {
+      cancelSubscription.mutate();
+    }
+  };
+
+  const getPlanIcon = (planId: string) => {
+    switch (planId) {
+      case 'free': return Zap;
+      case 'professional': return Building2;
+      case 'enterprise': return Rocket;
+      default: return Zap;
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -85,7 +124,7 @@ function SubscriptionContent() {
       </div>
 
       {/* Current Subscription Status */}
-      {isSubscribed && currentSubscription && (
+      {isSubscribed && subscriptionStatus && (
         <Card className="border-primary/50 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -94,83 +133,69 @@ function SubscriptionContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Plano</p>
-                <p className="text-xl font-bold capitalize">{currentSubscription.plan}</p>
+                <p className="text-xl font-bold capitalize">{subscriptionStatus.planDetails?.name || currentPlan}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={true ? "default" : "secondary"}>
-                  {true ? "Ativo" : "Inativo"}
+                <Badge variant={subscriptionStatus.stripeDetails?.status === 'active' ? "default" : "secondary"}>
+                  {subscriptionStatus.stripeDetails?.status === 'active' ? 'Ativo' : 
+                   subscriptionStatus.stripeDetails?.status === 'trialing' ? 'Período de Teste' :
+                   subscriptionStatus.stripeDetails?.cancelAtPeriodEnd ? 'Cancelamento Agendado' : 'Ativo'}
                 </Badge>
               </div>
-              {currentSubscription.expiresAt && (
+              {subscriptionStatus.expiresAt && (
                 <div>
                   <p className="text-sm text-muted-foreground">Válido até</p>
                   <p className="font-medium">
-                    {format(new Date(currentSubscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {format(new Date(subscriptionStatus.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </p>
                 </div>
               )}
+              <div className="flex items-end gap-2">
+                <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={createPortal.isPending}>
+                  {createPortal.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  Gerenciar
+                </Button>
+                {!subscriptionStatus.stripeDetails?.cancelAtPeriodEnd && (
+                  <Button variant="ghost" size="sm" onClick={handleCancelSubscription} disabled={cancelSubscription.isPending}>
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             </div>
+            {subscriptionStatus.stripeDetails?.cancelAtPeriodEnd && (
+              <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                <p className="text-sm text-yellow-600">
+                  Sua assinatura será cancelada ao final do período atual. Você pode reativar a qualquer momento.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Usage Stats */}
-      {usage && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Uso do Mês</CardTitle>
-            <CardDescription>Acompanhe o consumo das funcionalidades</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-primary" />
-                    Análises
-                  </span>
-                  <span>{usage.analyses || 0} / {usage.analysesLimit || 5}</span>
-                </div>
-                <Progress value={((usage.analyses || 0) / (usage.analysesLimit || 5)) * 100} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Mic className="h-4 w-4 text-primary" />
-                    Simulações
-                  </span>
-                  <span>{usage.simulations || 0} / {usage.simulationsLimit || 3}</span>
-                </div>
-                <Progress value={((usage.simulations || 0) / (usage.simulationsLimit || 3)) * 100} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    Transcrições
-                  </span>
-                  <span>{usage.transcriptions || 0} / {usage.transcriptionsLimit || 0}</span>
-                </div>
-                <Progress value={usage.transcriptionsLimit ? ((usage.transcriptions || 0) / usage.transcriptionsLimit) * 100 : 0} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    Minutas
-                  </span>
-                  <span>{usage.minutes || 0} / {usage.minutesLimit || 0}</span>
-                </div>
-                <Progress value={usage.minutesLimit ? ((usage.minutes || 0) / usage.minutesLimit) * 100 : 0} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Billing Period Toggle */}
+      <div className="flex justify-center">
+        <Tabs value={billingPeriod} onValueChange={(v) => setBillingPeriod(v as 'monthly' | 'yearly')}>
+          <TabsList>
+            <TabsTrigger value="monthly">Mensal</TabsTrigger>
+            <TabsTrigger value="yearly" className="relative">
+              Anual
+              <Badge className="absolute -top-2 -right-2 text-[10px] px-1" variant="default">
+                -17%
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {/* Plans Grid */}
       {isLoading ? (
@@ -180,17 +205,19 @@ function SubscriptionContent() {
       ) : (
         <div className="grid md:grid-cols-3 gap-6">
           {plans?.map((plan) => {
-            const features = planFeatures[plan.name] || planFeatures.free;
-            const PlanIcon = features.icon;
-            const isCurrentPlan = currentPlan === plan.name;
-            const isPopular = plan.name === "professional";
+            const PlanIcon = getPlanIcon(plan.id);
+            const isCurrentPlan = currentPlan === plan.id;
+            const isPopular = plan.popular;
+            const price = billingPeriod === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+            const priceFormatted = billingPeriod === 'yearly' ? plan.priceYearlyFormatted : plan.priceMonthlyFormatted;
+            const isProcessing = processingPlan === plan.id;
 
             return (
               <Card 
                 key={plan.id} 
                 className={cn(
-                  "relative",
-                  isPopular && "border-primary shadow-lg scale-105",
+                  "relative flex flex-col",
+                  isPopular && "border-primary shadow-lg scale-105 z-10",
                   isCurrentPlan && "ring-2 ring-primary"
                 )}
               >
@@ -211,20 +238,27 @@ function SubscriptionContent() {
                   )}>
                     <PlanIcon className={cn("h-6 w-6", !isPopular && "text-primary")} />
                   </div>
-                  <CardTitle className="capitalize">{plan.name}</CardTitle>
+                  <CardTitle>{plan.name}</CardTitle>
                   <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="text-center">
+                <CardContent className="text-center flex-1">
                   <div className="mb-6">
                     <span className="text-4xl font-bold">
-                      {Number(plan.priceMonthly) === 0 ? "Grátis" : `R$ ${plan.priceMonthly}`}
+                      {price === 0 ? "Grátis" : priceFormatted}
                     </span>
-                    {Number(plan.priceMonthly) > 0 && (
-                      <span className="text-muted-foreground">/mês</span>
+                    {price > 0 && (
+                      <span className="text-muted-foreground">
+                        /{billingPeriod === 'yearly' ? 'ano' : 'mês'}
+                      </span>
+                    )}
+                    {billingPeriod === 'yearly' && price > 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        equivale a {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price / 100 / 12)}/mês
+                      </p>
                     )}
                   </div>
                   <ul className="space-y-3 text-left">
-                    {features.features.map((feature, i) => (
+                    {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-green-500 mt-1 shrink-0" />
                         <span className="text-sm">{feature}</span>
@@ -236,16 +270,24 @@ function SubscriptionContent() {
                   <Button 
                     className="w-full" 
                     variant={isCurrentPlan ? "outline" : isPopular ? "default" : "outline"}
-                    disabled={isCurrentPlan}
-                    onClick={() => {
-                      if (!isCurrentPlan) {
-                        toast.info("Entre em contato para assinar este plano");
-                      }
-                    }}
+                    disabled={isCurrentPlan || isProcessing || createCheckout.isPending}
+                    onClick={() => handleSubscribe(plan.id)}
                   >
-                    {isCurrentPlan ? "Plano Atual" : 
-                     plan.name === "free" ? "Começar Grátis" : 
-                     "Assinar Agora"}
+                    {isProcessing || (createCheckout.isPending && processingPlan === plan.id) ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Processando...
+                      </>
+                    ) : isCurrentPlan ? (
+                      "Plano Atual"
+                    ) : plan.id === 'free' ? (
+                      "Plano Gratuito"
+                    ) : (
+                      <>
+                        Assinar Agora
+                        <ExternalLink className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -253,6 +295,18 @@ function SubscriptionContent() {
           })}
         </div>
       )}
+
+      {/* Payment Security Badge */}
+      <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          <span>Pagamento seguro via Stripe</span>
+        </div>
+        <span>•</span>
+        <span>Cancele a qualquer momento</span>
+        <span>•</span>
+        <span>Garantia de 7 dias</span>
+      </div>
 
       {/* FAQ Section */}
       <Card>
@@ -269,19 +323,25 @@ function SubscriptionContent() {
           <div>
             <h4 className="font-medium">Como funciona a cobrança?</h4>
             <p className="text-sm text-muted-foreground mt-1">
-              A cobrança é mensal e automática. Você pode alterar ou cancelar seu plano nas configurações.
+              A cobrança é automática via cartão de crédito através do Stripe. Você receberá um recibo por email após cada pagamento.
             </p>
           </div>
           <div>
             <h4 className="font-medium">Posso fazer upgrade do plano?</h4>
             <p className="text-sm text-muted-foreground mt-1">
-              Sim, você pode fazer upgrade a qualquer momento. O valor será calculado proporcionalmente.
+              Sim, você pode fazer upgrade a qualquer momento. O valor será calculado proporcionalmente ao período restante.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-medium">Quais formas de pagamento são aceitas?</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              Aceitamos todos os principais cartões de crédito (Visa, Mastercard, American Express, Elo) através do Stripe.
             </p>
           </div>
           <div>
             <h4 className="font-medium">Existe período de teste?</h4>
             <p className="text-sm text-muted-foreground mt-1">
-              O plano gratuito permite testar as principais funcionalidades. Para recursos avançados, oferecemos 7 dias de teste grátis no plano Professional.
+              O plano gratuito permite testar as principais funcionalidades. Oferecemos garantia de 7 dias em todos os planos pagos.
             </p>
           </div>
         </CardContent>

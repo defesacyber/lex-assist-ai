@@ -85,7 +85,7 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateUserSubscription(userId: number, plan: "free" | "basic" | "pro" | "enterprise", expiresAt?: Date) {
+export async function updateUserSubscription(userId: number, plan: "free" | "professional" | "enterprise", expiresAt?: Date) {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ 

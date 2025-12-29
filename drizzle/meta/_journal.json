@@ -15,6 +15,13 @@
       "when": 1766971967901,
       "tag": "0001_gray_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766974910574,
+      "tag": "0002_nappy_virginia_dare",
+      "breakpoints": true
     }
   ]
 }
