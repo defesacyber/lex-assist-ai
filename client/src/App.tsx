@@ -18,6 +18,7 @@ import Subscription from "./pages/Subscription";
 import CaseDetail from "./pages/CaseDetail";
 import Integrations from "./pages/Integrations";
 import Intelligence from "./pages/Intelligence";
+import Settings from "./pages/Settings";
 
 function Router() {
   return (
@@ -52,7 +53,7 @@ function Router() {
       <Route path="/subscription" component={Subscription} />
       <Route path="/integrations" component={Integrations} />
       <Route path="/intelligence" component={Intelligence} />
-      <Route path="/settings" component={ComingSoon} />
+      <Route path="/settings" component={Settings} />
       
       {/* 404 */}
       <Route path="/404" component={NotFound} />

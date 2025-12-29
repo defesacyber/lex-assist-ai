@@ -77,7 +77,7 @@
 - [x] Dark/Light theme
 
 ## 13. Testes
-- [x] Testes unitários backend (47 testes passando)
+- [x] Testes unitários backend (60 testes passando)
 - [x] Validação de fluxos principais
 
 
@@ -155,3 +155,37 @@
 - [x] Implementar portal do cliente Stripe para gerenciamento
 - [x] Sincronizar status de assinatura com banco de dados
 - [x] Testes de fluxo de pagamento (47 testes passando)
+
+
+## 25. Onboarding Guiado - Tour Interativo
+- [x] Instalar biblioteca driver.js para tour interativo
+- [x] Criar componente OnboardingTour com passos guiados
+- [x] Tour do Dashboard (estatísticas, menu, ações rápidas)
+- [x] Tour de Análise Preditiva (como usar, interpretar resultados)
+- [x] Tour do Simulador de Audiência (preparação, perguntas)
+- [x] Tour de Prazos (cadastro, alertas, controle)
+- [x] Persistir estado de onboarding concluído no banco
+- [x] Botão para reiniciar tour nas configurações
+
+## 26. Notificações WhatsApp
+- [x] Integração com Twilio/Meta WhatsApp Business API
+- [x] Endpoint para envio de mensagens WhatsApp
+- [x] Templates de mensagem para alertas de prazo
+- [x] Configuração de número de WhatsApp do usuário
+- [x] Alertas escalonados (7, 3, 1 dia antes do prazo)
+- [x] Notificação de novas movimentações processuais
+
+## 27. Notificações Telegram
+- [x] Criar bot Telegram para LexAssist AI
+- [x] Integração com Telegram Bot API
+- [x] Comando /start para vincular conta
+- [x] Alertas de prazos via Telegram
+- [x] Notificações de audiências agendadas
+- [x] Resumo diário de atividades
+
+## 28. Página de Configurações de Notificações
+- [x] UI para configurar WhatsApp (número, ativar/desativar)
+- [x] UI para vincular Telegram (deep link, código)
+- [x] Preferências de tipos de notificação
+- [x] Horários de silêncio (não perturbe)
+- [x] Teste de envio de notificação

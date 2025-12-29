@@ -94,6 +94,28 @@ export async function updateUserSubscription(userId: number, plan: "free" | "pro
   }).where(eq(users.id, userId));
 }
 
+export async function updateUserOnboarding(userId: number, completed: boolean) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ 
+    onboardingCompleted: completed,
+    onboardingCompletedAt: completed ? new Date() : null
+  }).where(eq(users.id, userId));
+}
+
+export async function updateUserNotificationSettings(userId: number, settings: {
+  whatsappNumber?: string;
+  whatsappEnabled?: boolean;
+  telegramChatId?: string;
+  telegramEnabled?: boolean;
+  notificationQuietStart?: string;
+  notificationQuietEnd?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set(settings).where(eq(users.id, userId));
+}
+
 // ==================== CASE QUERIES ====================
 export async function createCase(data: InsertCase) {
   const db = await getDb();

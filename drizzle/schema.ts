@@ -13,6 +13,16 @@ export const users = mysqlTable("users", {
   // Stripe integration fields
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  // Onboarding fields
+  onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
+  onboardingCompletedAt: timestamp("onboardingCompletedAt"),
+  // Notification preferences
+  whatsappNumber: varchar("whatsappNumber", { length: 20 }),
+  whatsappEnabled: boolean("whatsappEnabled").default(false).notNull(),
+  telegramChatId: varchar("telegramChatId", { length: 50 }),
+  telegramEnabled: boolean("telegramEnabled").default(false).notNull(),
+  notificationQuietStart: varchar("notificationQuietStart", { length: 5 }), // HH:MM format
+  notificationQuietEnd: varchar("notificationQuietEnd", { length: 5 }), // HH:MM format
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

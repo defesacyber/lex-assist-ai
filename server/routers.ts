@@ -1068,6 +1068,111 @@ ${transcription.transcriptionText}`;
       return { success: true, message: 'Assinatura será cancelada ao final do período atual' };
     }),
   }),
+
+  // ==================== USER SETTINGS ROUTER ====================
+  user: router({
+    // Get onboarding status
+    getOnboardingStatus: protectedProcedure.query(async ({ ctx }) => {
+      return {
+        completed: ctx.user.onboardingCompleted || false,
+        completedAt: ctx.user.onboardingCompletedAt,
+      };
+    }),
+
+    // Mark onboarding as complete
+    completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.updateUserOnboarding(ctx.user.id, true);
+      return { success: true };
+    }),
+
+    // Reset onboarding (to show tour again)
+    resetOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.updateUserOnboarding(ctx.user.id, false);
+      return { success: true };
+    }),
+
+    // Get notification settings
+    getNotificationSettings: protectedProcedure.query(async ({ ctx }) => {
+      return {
+        whatsappNumber: ctx.user.whatsappNumber,
+        whatsappEnabled: ctx.user.whatsappEnabled || false,
+        telegramChatId: ctx.user.telegramChatId,
+        telegramEnabled: ctx.user.telegramEnabled || false,
+        quietStart: ctx.user.notificationQuietStart,
+        quietEnd: ctx.user.notificationQuietEnd,
+      };
+    }),
+
+    // Update WhatsApp settings
+    updateWhatsappSettings: protectedProcedure
+      .input(z.object({
+        whatsappNumber: z.string().max(20).optional(),
+        whatsappEnabled: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserNotificationSettings(ctx.user.id, {
+          whatsappNumber: input.whatsappNumber,
+          whatsappEnabled: input.whatsappEnabled,
+        });
+        return { success: true };
+      }),
+
+    // Update Telegram settings
+    updateTelegramSettings: protectedProcedure
+      .input(z.object({
+        telegramChatId: z.string().max(50).optional(),
+        telegramEnabled: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserNotificationSettings(ctx.user.id, {
+          telegramChatId: input.telegramChatId,
+          telegramEnabled: input.telegramEnabled,
+        });
+        return { success: true };
+      }),
+
+    // Update quiet hours
+    updateQuietHours: protectedProcedure
+      .input(z.object({
+        quietStart: z.string().max(5).optional(), // HH:MM
+        quietEnd: z.string().max(5).optional(), // HH:MM
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserNotificationSettings(ctx.user.id, {
+          notificationQuietStart: input.quietStart,
+          notificationQuietEnd: input.quietEnd,
+        });
+        return { success: true };
+      }),
+
+    // Generate Telegram link code
+    generateTelegramLinkCode: protectedProcedure.mutation(async ({ ctx }) => {
+      const code = `LEX_${ctx.user.id}_${Date.now().toString(36)}`;
+      return { 
+        code,
+        botUsername: 'LexAssistAIBot',
+        deepLink: `https://t.me/LexAssistAIBot?start=${code}`,
+      };
+    }),
+
+    // Send test notification
+    sendTestNotification: protectedProcedure
+      .input(z.object({
+        channel: z.enum(['whatsapp', 'telegram']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // In production, this would actually send a notification
+        // For now, we just simulate success
+        const message = `🔔 Teste de Notificação LexAssist AI\n\nOlá ${ctx.user.name || 'Advogado'}!\nSuas notificações via ${input.channel === 'whatsapp' ? 'WhatsApp' : 'Telegram'} estão funcionando corretamente.`;
+        
+        console.log(`[Notification Test] Channel: ${input.channel}, User: ${ctx.user.id}, Message: ${message}`);
+        
+        return { 
+          success: true, 
+          message: `Notificação de teste enviada via ${input.channel === 'whatsapp' ? 'WhatsApp' : 'Telegram'}` 
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

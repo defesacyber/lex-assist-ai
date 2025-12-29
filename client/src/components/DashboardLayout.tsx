@@ -35,21 +35,21 @@ import { Badge } from "./ui/badge";
 import { trpc } from "@/lib/trpc";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Briefcase, label: "Meus Casos", path: "/cases" },
-  { icon: Brain, label: "Análise Preditiva", path: "/analysis" },
-  { icon: MessageSquare, label: "Simulador de Audiência", path: "/simulator" },
-  { icon: Mic, label: "Assistente de Audiência", path: "/assistant" },
-  { icon: Clock, label: "Prazos", path: "/deadlines" },
-  { icon: FileText, label: "Documentos", path: "/documents" },
-  { icon: Plug, label: "Integrações", path: "/integrations" },
-  { icon: Sparkles, label: "Inteligência Avançada", path: "/intelligence" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", tourId: "dashboard" },
+  { icon: Briefcase, label: "Meus Casos", path: "/cases", tourId: "cases" },
+  { icon: Brain, label: "Análise Preditiva", path: "/analysis", tourId: "analysis" },
+  { icon: MessageSquare, label: "Simulador de Audiência", path: "/simulator", tourId: "simulator" },
+  { icon: Mic, label: "Assistente de Audiência", path: "/assistant", tourId: "assistant" },
+  { icon: Clock, label: "Prazos", path: "/deadlines", tourId: "deadlines" },
+  { icon: FileText, label: "Documentos", path: "/documents", tourId: "documents" },
+  { icon: Plug, label: "Integrações", path: "/integrations", tourId: "integrations" },
+  { icon: Sparkles, label: "Inteligência Avançada", path: "/intelligence", tourId: "intelligence" },
 ];
 
 const bottomMenuItems = [
-  { icon: Bell, label: "Notificações", path: "/notifications" },
-  { icon: CreditCard, label: "Assinatura", path: "/subscription" },
-  { icon: Settings, label: "Configurações", path: "/settings" },
+  { icon: Bell, label: "Notificações", path: "/notifications", tourId: "notifications" },
+  { icon: CreditCard, label: "Assinatura", path: "/subscription", tourId: "subscription" },
+  { icon: Settings, label: "Configurações", path: "/settings", tourId: "settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -191,6 +191,7 @@ function DashboardLayoutContent({
           collapsible="icon"
           className="border-r-0"
           disableTransition={isResizing}
+          data-tour="sidebar"
         >
           <SidebarHeader className="h-16 justify-center">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
@@ -217,7 +218,7 @@ function DashboardLayoutContent({
               {menuItems.map(item => {
                 const isActive = location.startsWith(item.path);
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.path} data-tour={item.tourId}>
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
@@ -241,7 +242,7 @@ function DashboardLayoutContent({
                 const isActive = location.startsWith(item.path);
                 const showBadge = item.path === "/notifications" && unreadCount && unreadCount > 0;
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.path} data-tour={item.tourId}>
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}

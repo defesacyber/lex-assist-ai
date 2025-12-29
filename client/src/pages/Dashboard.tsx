@@ -5,11 +5,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { 
   Briefcase, Brain, Clock, Calendar, AlertTriangle, 
-  TrendingUp, ArrowRight, Plus, FileText
+  TrendingUp, ArrowRight, Plus, FileText, HelpCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { OnboardingTour, useOnboardingTour } from "@/components/OnboardingTour";
 
 function DashboardContent() {
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery();
@@ -72,10 +73,15 @@ function DashboardContent() {
     }
   ];
 
+  const { startTour } = useOnboardingTour();
+
   return (
     <div className="space-y-6">
+      {/* Onboarding Tour - auto-starts for new users */}
+      <OnboardingTour autoStart={true} />
+      
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4" data-tour="welcome">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -83,6 +89,10 @@ function DashboardContent() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={startTour} className="gap-2">
+            <HelpCircle className="h-4 w-4" />
+            Tour
+          </Button>
           <Link href="/cases/new">
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -93,7 +103,7 @@ function DashboardContent() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="stats">
         {statCards.map((stat, index) => (
           <Card key={index} className="card-hover">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
