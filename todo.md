@@ -106,3 +106,41 @@
 - [x] Métricas de performance (latência, throughput)
 - [x] Alertas de falha de sincronização
 - [x] Health check endpoint
+
+
+## 18. Olho da Lei - Monitoramento de Jurisprudência (AUDIUM)
+- [x] Monitoramento 24/7 de decisões STF/STJ/TJs
+- [x] Alerta automático de jurisprudência favorável ao caso
+- [x] Notificações em tempo real de mudanças de entendimento
+- [x] Indexação semântica de decisões relevantes
+
+## 19. Match de Juízes - Análise de Perfil Judicial (AUDIUM)
+- [x] Banco de dados com histórico de decisões por juiz
+- [x] IA analisa padrões de aceitação por tipo de caso
+- [x] Sugestão de teses que cada juiz mais aceita
+- [x] Score de probabilidade por magistrado
+
+## 20. Health Score do Caso (AUDIUM)
+- [x] Score 0-100 baseado em múltiplos fatores
+- [x] Análise de prazos cumpridos
+- [x] Avaliação de documentação completa
+- [x] Indicador de risco de perda
+- [x] Dashboard visual com score por caso
+
+## 21. Radar de Prazos Cruzados (AUDIUM)
+- [x] Detecção de conflitos entre prazos
+- [x] Alerta de audiências no mesmo dia/horário
+- [x] Sugestão automática de reagendamento
+- [x] Visualização de calendário com conflitos
+
+## 22. Calculadora de Honorários Preditiva (AUDIUM)
+- [x] Previsão de honorários baseada em complexidade
+- [x] Análise de valor da causa e tribunal
+- [x] Histórico de honorários na região
+- [x] Sugestão de valor otimizado
+
+## 23. Modo Pós-Audiência em 90s (AUDIUM)
+- [x] Geração de relatório pré-formatado instantâneo
+- [x] Alertas baseados em padrões do magistrado
+- [x] Criação automática de tarefas e prazos
+- [x] Indicador de risco de indeferimento

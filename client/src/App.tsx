@@ -17,6 +17,7 @@ import Documents from "./pages/Documents";
 import Subscription from "./pages/Subscription";
 import CaseDetail from "./pages/CaseDetail";
 import Integrations from "./pages/Integrations";
+import Intelligence from "./pages/Intelligence";
 
 function Router() {
   return (
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/subscription" component={Subscription} />
       <Route path="/integrations" component={Integrations} />
+      <Route path="/intelligence" component={Intelligence} />
       <Route path="/settings" component={ComingSoon} />
       
       {/* 404 */}

@@ -9,6 +9,7 @@ import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { ESAJClient, DatajudClient, judicialSyncManager, ComplianceUtils } from "./judicial-integration";
+import { OlhoDaLei, MatchDeJuizes, HealthScoreCalculator, RadarDePrazos, CalculadoraHonorarios, ModoPostAudiencia } from "./advanced-intelligence";
 
 // ==================== VALIDATION SCHEMAS ====================
 const caseSchema = z.object({
@@ -821,6 +822,171 @@ ${transcription.transcriptionText}`;
       .mutation(async ({ ctx, input }) => {
         await db.deleteDocument(input.id, ctx.user.id);
         return { success: true };
+      }),
+  }),
+
+  // ==================== ADVANCED INTELLIGENCE (AUDIUM) ====================
+  intelligence: router({
+    // Olho da Lei - Monitoramento de Jurisprudência
+    analisarJurisprudencia: protectedProcedure
+      .input(z.object({
+        casoDescricao: z.string(),
+        categoria: z.string(),
+        tesesPrincipais: z.array(z.string())
+      }))
+      .mutation(async ({ input }) => {
+        return OlhoDaLei.analisarJurisprudenciaParaCaso(
+          input.casoDescricao,
+          input.categoria,
+          input.tesesPrincipais
+        );
+      }),
+
+    verificarMudancasEntendimento: protectedProcedure
+      .input(z.object({
+        tema: z.string(),
+        tribunais: z.array(z.string()).optional()
+      }))
+      .mutation(async ({ input }) => {
+        return OlhoDaLei.verificarMudancasEntendimento(
+          input.tema,
+          input.tribunais
+        );
+      }),
+
+    // Match de Juízes - Análise de Perfil Judicial
+    analisarPerfilJuiz: protectedProcedure
+      .input(z.object({
+        nomeJuiz: z.string(),
+        tribunal: z.string(),
+        vara: z.string()
+      }))
+      .mutation(async ({ input }) => {
+        return MatchDeJuizes.analisarPerfilJuiz(
+          input.nomeJuiz,
+          input.tribunal,
+          input.vara
+        );
+      }),
+
+    sugerirEstrategias: protectedProcedure
+      .input(z.object({
+        perfilJuiz: z.object({
+          id: z.string(),
+          nome: z.string(),
+          tribunal: z.string(),
+          vara: z.string(),
+          especialidade: z.string(),
+          totalDecisoes: z.number(),
+          taxaAceitacao: z.object({
+            geral: z.number(),
+            porTipo: z.record(z.string(), z.number())
+          }),
+          tempoMedioDecisao: z.number(),
+          tesesPreferidas: z.array(z.string()),
+          padroes: z.object({
+            prefereTutela: z.boolean(),
+            exigeProvaPericial: z.boolean(),
+            valorMedioDanoMoral: z.number(),
+            aceitaAcordos: z.boolean()
+          }),
+          ultimaAtualizacao: z.string()
+        }),
+        tipoCaso: z.string(),
+        tesesDisponiveis: z.array(z.string())
+      }))
+      .mutation(async ({ input }) => {
+        const perfil = {
+          ...input.perfilJuiz,
+          ultimaAtualizacao: new Date(input.perfilJuiz.ultimaAtualizacao)
+        };
+        return MatchDeJuizes.sugerirEstrategias(
+          perfil,
+          input.tipoCaso,
+          input.tesesDisponiveis
+        );
+      }),
+
+    // Health Score do Caso
+    calcularHealthScore: protectedProcedure
+      .input(z.object({
+        caseId: z.number(),
+        prazosCumpridos: z.number().min(0).max(100),
+        documentacaoCompleta: z.number().min(0).max(100),
+        jurisprudenciaFavoravel: z.number().min(0).max(100),
+        complexidade: z.number().min(1).max(10),
+        diasSemMovimentacao: z.number().min(0)
+      }))
+      .query(async ({ input }) => {
+        const score = HealthScoreCalculator.calcularHealthScore(
+          input.prazosCumpridos,
+          input.documentacaoCompleta,
+          input.jurisprudenciaFavoravel,
+          input.complexidade,
+          input.diasSemMovimentacao
+        );
+        return { ...score, caseId: input.caseId };
+      }),
+
+    // Radar de Prazos - Detecção de Conflitos
+    detectarConflitos: protectedProcedure
+      .input(z.object({
+        eventos: z.array(z.object({
+          id: z.string(),
+          tipo: z.enum(['audiencia', 'prazo', 'reuniao']),
+          titulo: z.string(),
+          casoTitulo: z.string(),
+          data: z.number(), // timestamp
+          duracao: z.number().optional()
+        }))
+      }))
+      .query(async ({ input }) => {
+        const eventos = input.eventos.map(e => ({
+          ...e,
+          data: new Date(e.data)
+        }));
+        return RadarDePrazos.detectarConflitos(eventos);
+      }),
+
+    // Calculadora de Honorários Preditiva
+    calcularHonorarios: protectedProcedure
+      .input(z.object({
+        tipoAcao: z.string(),
+        valorCausa: z.number(),
+        complexidade: z.number().min(1).max(10),
+        tribunal: z.string(),
+        tempoEstimadoMeses: z.number()
+      }))
+      .mutation(async ({ input }) => {
+        return CalculadoraHonorarios.calcularHonorarios(
+          input.tipoAcao,
+          input.valorCausa,
+          input.complexidade,
+          input.tribunal,
+          input.tempoEstimadoMeses
+        );
+      }),
+
+    // Modo Pós-Audiência em 90 Segundos
+    gerarRelatorioPostAudiencia: protectedProcedure
+      .input(z.object({
+        audienciaId: z.number(),
+        transcricao: z.string(),
+        tipoAudiencia: z.string(),
+        nomeJuiz: z.string(),
+        partes: z.object({
+          autor: z.string(),
+          reu: z.string()
+        })
+      }))
+      .mutation(async ({ input }) => {
+        const relatorio = await ModoPostAudiencia.gerarRelatorioRapido(
+          input.transcricao,
+          input.tipoAudiencia,
+          input.nomeJuiz,
+          input.partes
+        );
+        return { ...relatorio, audienciaId: input.audienciaId };
       }),
   }),
 });
