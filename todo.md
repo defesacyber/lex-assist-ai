@@ -79,3 +79,30 @@
 ## 13. Testes
 - [ ] Testes unitários backend
 - [ ] Validação de fluxos principais
+
+
+## 14. Integração Sistemas Judiciais (Novos Requisitos)
+- [x] Cliente PJe eCJUS (SOAP/WS-Security) para consulta de processos
+- [x] Cliente e-SAJ REST (Bearer Token) para TJ-SP e outros tribunais
+- [x] Cliente CNJ Datajud (OAuth 2.0) para metadados processuais
+- [x] Sincronização automática de movimentações (30 min interval)
+- [x] Detecção de novas movimentações e decisões
+- [x] Download automático de documentos judiciais
+
+## 15. WebSocket Real-time Updates
+- [x] Servidor WebSocket para atualizações em tempo real
+- [x] Sistema de rooms por caso para broadcast direcionado
+- [x] Notificações push de novas movimentações
+- [x] Latência <100ms para atualizações
+
+## 16. Compliance e Segurança
+- [x] Logs auditáveis (CNJ 615/2025)
+- [x] Conformidade LGPD (criptografia, direito ao esquecimento)
+- [x] Hash SHA-256 de documentos
+- [x] TLS 1.3 para todas as comunicações
+
+## 17. Métricas e Monitoramento
+- [x] Dashboard de status das integrações
+- [x] Métricas de performance (latência, throughput)
+- [x] Alertas de falha de sincronização
+- [x] Health check endpoint

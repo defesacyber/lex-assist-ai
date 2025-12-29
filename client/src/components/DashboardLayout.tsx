@@ -25,7 +25,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { 
   LayoutDashboard, LogOut, PanelLeft, Scale, 
   Briefcase, Brain, MessageSquare, Mic, Clock,
-  FileText, Bell, Settings, CreditCard
+  FileText, Bell, Settings, CreditCard, Plug
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
@@ -42,6 +42,7 @@ const menuItems = [
   { icon: Mic, label: "Assistente de Audiência", path: "/assistant" },
   { icon: Clock, label: "Prazos", path: "/deadlines" },
   { icon: FileText, label: "Documentos", path: "/documents" },
+  { icon: Plug, label: "Integrações", path: "/integrations" },
 ];
 
 const bottomMenuItems = [
