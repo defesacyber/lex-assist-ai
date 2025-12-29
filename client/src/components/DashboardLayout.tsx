@@ -4,6 +4,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,15 +22,32 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { 
+  LayoutDashboard, LogOut, PanelLeft, Scale, 
+  Briefcase, Brain, MessageSquare, Mic, Clock,
+  FileText, Bell, Settings, CreditCard
+} from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { trpc } from "@/lib/trpc";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Briefcase, label: "Meus Casos", path: "/cases" },
+  { icon: Brain, label: "Análise Preditiva", path: "/analysis" },
+  { icon: MessageSquare, label: "Simulador de Audiência", path: "/simulator" },
+  { icon: Mic, label: "Assistente de Audiência", path: "/assistant" },
+  { icon: Clock, label: "Prazos", path: "/deadlines" },
+  { icon: FileText, label: "Documentos", path: "/documents" },
+];
+
+const bottomMenuItems = [
+  { icon: Bell, label: "Notificações", path: "/notifications" },
+  { icon: CreditCard, label: "Assinatura", path: "/subscription" },
+  { icon: Settings, label: "Configurações", path: "/settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -58,14 +76,18 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <Scale className="h-12 w-12 text-primary" />
+            <span className="text-3xl font-bold gradient-text">LexAssist AI</span>
+          </div>
           <div className="flex flex-col items-center gap-6">
             <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
+              Acesse sua conta
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Faça login para acessar o dashboard e todas as funcionalidades do LexAssist AI.
             </p>
           </div>
           <Button
@@ -75,8 +97,13 @@ export default function DashboardLayout({
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
-            Sign in
+            Entrar
           </Button>
+          <Link href="/">
+            <Button variant="ghost" size="sm">
+              Voltar para a página inicial
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -112,8 +139,12 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const activeMenuItem = [...menuItems, ...bottomMenuItems].find(item => location.startsWith(item.path));
   const isMobile = useIsMobile();
+
+  const { data: unreadCount } = trpc.notifications.unreadCount.useQuery(undefined, {
+    refetchInterval: 30000
+  });
 
   useEffect(() => {
     if (isCollapsed) {
@@ -169,11 +200,12 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                <Link href="/" className="flex items-center gap-2 min-w-0">
+                  <Scale className="h-6 w-6 text-primary shrink-0" />
+                  <span className="font-semibold tracking-tight truncate gradient-text">
+                    LexAssist AI
                   </span>
-                </div>
+                </Link>
               ) : null}
             </div>
           </SidebarHeader>
@@ -181,7 +213,7 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
-                const isActive = location === item.path;
+                const isActive = location.startsWith(item.path);
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
@@ -199,6 +231,42 @@ function DashboardLayoutContent({
                 );
               })}
             </SidebarMenu>
+
+            <div className="flex-1" />
+
+            <SidebarMenu className="px-2 py-1 border-t">
+              {bottomMenuItems.map(item => {
+                const isActive = location.startsWith(item.path);
+                const showBadge = item.path === "/notifications" && unreadCount && unreadCount > 0;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(item.path)}
+                      tooltip={item.label}
+                      className={`h-10 transition-all font-normal`}
+                    >
+                      <div className="relative">
+                        <item.icon
+                          className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        />
+                        {showBadge && (
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
+                        )}
+                      </div>
+                      <span className="flex items-center gap-2">
+                        {item.label}
+                        {showBadge && !isCollapsed && (
+                          <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                            {unreadCount}
+                          </Badge>
+                        )}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
           </SidebarContent>
 
           <SidebarFooter className="p-3">
@@ -206,13 +274,13 @@ function DashboardLayoutContent({
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium">
-                      {user?.name?.charAt(0).toUpperCase()}
+                    <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-medium truncate leading-none">
-                      {user?.name || "-"}
+                      {user?.name || "Usuário"}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-1.5">
                       {user?.email || "-"}
@@ -221,12 +289,21 @@ function DashboardLayoutContent({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setLocation("/settings")} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocation("/subscription")} className="cursor-pointer">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Assinatura</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -248,6 +325,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
               <div className="flex items-center gap-3">
+                <Scale className="h-5 w-5 text-primary" />
                 <div className="flex flex-col gap-1">
                   <span className="tracking-tight text-foreground">
                     {activeMenuItem?.label ?? "Menu"}
@@ -257,7 +335,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </SidebarInset>
     </>
   );
